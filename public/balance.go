@@ -33,9 +33,13 @@ type Billing struct {
 	} `json:"grants"`
 }
 
+// GetBalance 获取账号余额
 func GetBalance() (Billing, error) {
 	var data Billing
-	url := "https://api.openai.com/dashboard/billing/credit_grants"
+	var url string = "https://api.openai.com/dashboard/billing/credit_grants"
+	if Config.BaseURL != "" {
+		url = Config.BaseURL + "/dashboard/billing/credit_grants"
+	}
 	resp, err := InitAiCli().R().Get(url)
 	if err != nil {
 		return data, err

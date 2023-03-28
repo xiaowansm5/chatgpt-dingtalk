@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/eryajf/chatgpt-dingtalk/public/logger"
+	"github.com/eryajf/chatgpt-dingtalk/pkg/logger"
 )
 
 // Configuration 项目配置
@@ -27,6 +27,10 @@ type Configuration struct {
 	HttpProxy string `json:"http_proxy"`
 	// 用户单日最大请求次数
 	MaxRequest int `json:"max_request"`
+	// 指定服务启动端口，默认为 8090
+	Port string `json:"port"`
+	// 指定服务的地址，就是钉钉机器人配置的回调地址，比如: http://chat.eryajf.net
+	ServiceURL string `json:"service_url"`
 }
 
 var config *Configuration
@@ -39,7 +43,7 @@ func LoadConfig() *Configuration {
 		config = &Configuration{}
 		f, err := os.Open("config.json")
 		if err != nil {
-			logger.Danger(fmt.Errorf("open config err: %+v", err))
+			logger.Fatal(fmt.Errorf("open config err: %+v", err))
 			return
 		}
 		defer f.Close()
@@ -57,6 +61,8 @@ func LoadConfig() *Configuration {
 		defaultMode := os.Getenv("DEFAULT_MODE")
 		httpProxy := os.Getenv("HTTP_PROXY")
 		maxRequest := os.Getenv("MAX_REQUEST")
+		port := os.Getenv("PORT")
+		serviceURL := os.Getenv("SERVICE_URL")
 		if apiKey != "" {
 			config.ApiKey = apiKey
 		}
@@ -66,7 +72,7 @@ func LoadConfig() *Configuration {
 		if sessionTimeout != "" {
 			duration, err := strconv.ParseInt(sessionTimeout, 10, 64)
 			if err != nil {
-				logger.Danger(fmt.Sprintf("config session timeout err: %v ,get is %v", err, sessionTimeout))
+				logger.Fatal(fmt.Sprintf("config session timeout err: %v ,get is %v", err, sessionTimeout))
 				return
 			}
 			config.SessionTimeout = time.Duration(duration) * time.Second
@@ -86,6 +92,12 @@ func LoadConfig() *Configuration {
 			newMR, _ := strconv.Atoi(maxRequest)
 			config.MaxRequest = newMR
 		}
+		if port != "" {
+			config.Port = port
+		}
+		if serviceURL != "" {
+			config.ServiceURL = serviceURL
+		}
 	})
 	if config.Model == "" {
 		config.DefaultMode = "gpt-3.5-turbo"
@@ -93,8 +105,14 @@ func LoadConfig() *Configuration {
 	if config.DefaultMode == "" {
 		config.DefaultMode = "单聊"
 	}
+	if config.Port == "" {
+		config.Port = "8090"
+	}
 	if config.ApiKey == "" {
-		logger.Danger("config err: api key required")
+		logger.Fatal("config err: api key required")
+	}
+	if config.ServiceURL == "" {
+		logger.Fatal("config err: service url required")
 	}
 	return config
 }
